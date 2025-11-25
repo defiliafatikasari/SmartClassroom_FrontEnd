@@ -39,23 +39,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       final authService = Provider.of<AuthService>(context, listen: false);
       final user = await authService.getProfile();
-      if (mounted) {
-        setState(() {
-          _user = user;
-          _isLoading = false;
-        });
-        if (user != null) {
-          _nameController.text = user.name;
-          _emailController.text = user.email;
-        }
+      if (!mounted) return;
+
+      setState(() {
+        _user = user;
+        _isLoading = false;
+      });
+
+      if (user != null) {
+        _nameController.text = user.name;
+        _emailController.text = user.email;
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load profile: $e')),
-        );
-        setState(() => _isLoading = false);
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Error: $e")));
+      setState(() => _isLoading = false);
     }
   }
 
@@ -71,24 +70,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _emailController.text.trim(),
       );
 
-      if (mounted) {
-        setState(() {
-          _user = updatedUser;
-          _isEditing = false;
-          _isSaving = false;
-        });
+      if (!mounted) return;
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile updated successfully')),
-        );
-      }
+      setState(() {
+        _user = updatedUser;
+        _isEditing = false;
+        _isSaving = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Profile updated successfully")),
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update profile: $e')),
-        );
-        setState(() => _isSaving = false);
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Error: $e")));
+      setState(() => _isSaving = false);
     }
   }
 
@@ -105,161 +102,201 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF4F6FB),
       appBar: AppBar(
         title: const Text('Profile'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         actions: [
           if (!_isLoading && _user != null)
             IconButton(
-              onPressed: _isEditing ? _cancelEdit : () => setState(() => _isEditing = true),
-              icon: Icon(_isEditing ? Icons.close : Icons.edit),
+              icon: Icon(
+                _isEditing ? Icons.close : Icons.edit,
+                color: Colors.indigo.shade700,
+              ),
+              onPressed: () =>
+                  _isEditing ? _cancelEdit() : setState(() => _isEditing = true),
             ),
         ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _user == null
-              ? const Center(child: Text('Profile not found'))
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    children: [
-                      CircleAvatar(
-                        radius: 50,
-                        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                        child: Text(
-                          _user!.name[0].toUpperCase(),
-                          style: TextStyle(
-                            fontSize: 32,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
+              ? const Center(child: Text("Profile not found"))
+              : _buildProfileContent(context),
+    );
+  }
+
+  Widget _buildProfileContent(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          _buildHeaderCard(),
+          const SizedBox(height: 20),
+          _buildProfileCard(),
+        ],
+      ),
+    );
+  }
+
+  // Header Gradient + Avatar
+  Widget _buildHeaderCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 30),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.indigo.shade600, Colors.deepPurple.shade500],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.indigo.shade200, blurRadius: 20, offset: const Offset(0, 8))
+        ],
+      ),
+      child: Column(
+        children: [
+          CircleAvatar(
+            radius: 48,
+            backgroundColor: Colors.white,
+            child: Text(
+              _user!.name[0].toUpperCase(),
+              style: TextStyle(
+                  fontSize: 40,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.indigo.shade700),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            _user!.name,
+            style: const TextStyle(
+                color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            _user!.email,
+            style: TextStyle(
+                color: Colors.white.withOpacity(0.9), fontSize: 14),
+          ),
+          const SizedBox(height: 12),
+          Chip(
+            label: Text(
+              "Role: ${_user!.role}",
+              style: const TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
+            ),
+            backgroundColor: Colors.white24,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Card Glassmorphism untuk form & info
+  Widget _buildProfileCard() {
+    return Card(
+      elevation: 4,
+      shadowColor: Colors.black12,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: AnimatedCrossFade(
+          duration: const Duration(milliseconds: 300),
+          crossFadeState:
+              _isEditing ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+          firstChild: _buildInfoView(),
+          secondChild: _buildEditForm(),
+        ),
+      ),
+    );
+  }
+
+  // View Mode
+  Widget _buildInfoView() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text("Informasi Akun:",
+            style:
+                TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.indigo.shade900)),
+        const SizedBox(height: 16),
+        _infoTile(Icons.person, "Name", _user!.name),
+        _infoTile(Icons.email, "Email", _user!.email),
+        _infoTile(Icons.school, "Role", _user!.role),
+        _infoTile(Icons.verified, "Status", "Active"),
+      ],
+    );
+  }
+
+  Widget _infoTile(IconData icon, String label, String value) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(icon, color: Colors.indigo.shade700),
+      title: Text(label,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+      subtitle: Text(value, style: const TextStyle(fontSize: 13)),
+    );
+  }
+
+  // Edit Form Mode
+  Widget _buildEditForm() {
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("Edit Profile",
+              style:
+                  TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.indigo.shade900)),
+          const SizedBox(height: 20),
+
+          TextFormField(
+            controller: _nameController,
+            decoration: const InputDecoration(
+                labelText: "Full Name", prefixIcon: Icon(Icons.person)),
+            validator: (value) =>
+                value == null || value.isEmpty ? "Name cannot be empty" : null,
+          ),
+          const SizedBox(height: 16),
+
+          TextFormField(
+            controller: _emailController,
+            decoration: const InputDecoration(
+                labelText: "Email", prefixIcon: Icon(Icons.email)),
+            validator: (value) =>
+                value == null || !value.contains("@") ? "Enter a valid email" : null,
+          ),
+
+          const SizedBox(height: 30),
+
+          Row(
+            children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: _isSaving ? null : _cancelEdit,
+                child: const Text("Cancel"),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: FilledButton(
+                onPressed: _isSaving ? null : _saveProfile,
+                child: _isSaving
+                    ? const SizedBox(
+                        height: 22,
+                        width: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        _user!.name,
-                        style: Theme.of(context).textTheme.headlineSmall,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _user!.email,
-                        style: Theme.of(context).textTheme.bodyLarge,
-                      ),
-                      const SizedBox(height: 16),
-                      Chip(
-                        label: Text('Role: ${_user!.role}'),
-                        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                      ),
-                      const SizedBox(height: 32),
-                      Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: _isEditing
-                              ? Form(
-                                  key: _formKey,
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Edit Profile',
-                                        style: Theme.of(context).textTheme.titleLarge,
-                                      ),
-                                      const SizedBox(height: 16),
-                                      TextFormField(
-                                        controller: _nameController,
-                                        decoration: const InputDecoration(
-                                          labelText: 'Name',
-                                          prefixIcon: Icon(Icons.person),
-                                        ),
-                                        validator: (value) {
-                                          if (value == null || value.trim().isEmpty) {
-                                            return 'Name is required';
-                                          }
-                                          return null;
-                                        },
-                                      ),
-                                      const SizedBox(height: 16),
-                                      TextFormField(
-                                        controller: _emailController,
-                                        decoration: const InputDecoration(
-                                          labelText: 'Email',
-                                          prefixIcon: Icon(Icons.email),
-                                        ),
-                                        keyboardType: TextInputType.emailAddress,
-                                        validator: (value) {
-                                          if (value == null || value.trim().isEmpty) {
-                                            return 'Email is required';
-                                          }
-                                          if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                                            return 'Enter a valid email';
-                                          }
-                                          return null;
-                                        },
-                                      ),
-                                      const SizedBox(height: 24),
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: OutlinedButton(
-                                              onPressed: _isSaving ? null : _cancelEdit,
-                                              child: const Text('Cancel'),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 16),
-                                          Expanded(
-                                            child: FilledButton(
-                                              onPressed: _isSaving ? null : _saveProfile,
-                                              child: _isSaving
-                                                  ? const SizedBox(
-                                                      width: 20,
-                                                      height: 20,
-                                                      child: CircularProgressIndicator(
-                                                        strokeWidth: 2,
-                                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                                      ),
-                                                    )
-                                                  : const Text('Save'),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                )
-                              : Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Account Information',
-                                      style: Theme.of(context).textTheme.titleLarge,
-                                    ),
-                                    const SizedBox(height: 16),
-                                    ListTile(
-                                      leading: const Icon(Icons.person),
-                                      title: const Text('Name'),
-                                      subtitle: Text(_user!.name),
-                                    ),
-                                    ListTile(
-                                      leading: const Icon(Icons.email),
-                                      title: const Text('Email'),
-                                      subtitle: Text(_user!.email),
-                                    ),
-                                    ListTile(
-                                      leading: const Icon(Icons.school),
-                                      title: const Text('Role'),
-                                      subtitle: Text(_user!.role),
-                                    ),
-                                    ListTile(
-                                      leading: const Icon(Icons.verified_user),
-                                      title: const Text('Account Status'),
-                                      subtitle: const Text('Active'),
-                                    ),
-                                  ],
-                                ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                      )
+                    : const Text("Save"),
+              ),
+            ),
+          ]),
+        ],
+      ),
     );
   }
 }
