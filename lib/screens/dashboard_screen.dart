@@ -28,22 +28,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> _loadData() async {
     try {
       final classService = Provider.of<ClassService>(context, listen: false);
-      final recommendationService = Provider.of<RecommendationService>(context, listen: false);
+      final recService = Provider.of<RecommendationService>(context, listen: false);
 
       final classes = await classService.getClasses();
-      final recommendations = await recommendationService.getRecommendations();
+      final recs = await recService.getRecommendations();
 
-      if (mounted) {
-        setState(() {
-          _classes = classes;
-          _recommendations = recommendations;
-          _isLoading = false;
-        });
-      }
+      if (!mounted) return;
+
+      setState(() {
+        _classes = classes;
+        _recommendations = recs;
+        _isLoading = false;
+      });
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load data: $e')),
+          SnackBar(content: Text("Failed: $e")),
         );
         setState(() => _isLoading = false);
       }
@@ -51,27 +51,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _logout() async {
-    final authService = Provider.of<AuthService>(context, listen: false);
-    await authService.logout();
-    if (mounted) {
-      Navigator.pushReplacementNamed(context, AppRoutes.login);
-    }
+    final auth = Provider.of<AuthService>(context, listen: false);
+    await auth.logout();
+    Navigator.pushReplacementNamed(context, AppRoutes.login);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF4F6FB),
       appBar: AppBar(
-        title: const Text('Dashboard'),
+        toolbarHeight: 80,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Hello👋",
+                style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.indigo.shade800)),
+            Text(
+              "Welcome to Smart Classroom",
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+            ),
+          ],
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.person),
-            onPressed: () {
-              Navigator.pushNamed(context, AppRoutes.profile);
-            },
+            icon: const Icon(Icons.person, size: 28),
+            color: Colors.indigo,
+            onPressed: () => Navigator.pushNamed(context, AppRoutes.profile),
           ),
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout, size: 28),
+            color: Colors.redAccent,
             onPressed: _logout,
           ),
         ],
@@ -81,191 +96,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
           : RefreshIndicator(
               onRefresh: _loadData,
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16.0),
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Welcome to Smart Classroom',
-                      style: Theme.of(context).textTheme.headlineSmall,
-                    ),
+
+                    // Featured Section
+                    _buildFeaturedBanner(),
+
                     const SizedBox(height: 24),
 
-                    // Classes Section
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'My Classes',
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pushNamed(context, AppRoutes.classList);
-                          },
-                          child: const Text('View All'),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
+                    // Classes
+                    _sectionTitle("Your Classes", onViewAll: () {
+                      Navigator.pushNamed(context, AppRoutes.classList);
+                    }),
+                    const SizedBox(height: 12),
+
                     _classes.isEmpty
-                        ? const Card(
-                            child: Padding(
-                              padding: EdgeInsets.all(16.0),
-                              child: Text('No classes available'),
-                            ),
-                          )
-                        : SizedBox(
-                            height: 200,
-                            child: ListView.builder(
-                              scrollDirection: Axis.horizontal,
-                              itemCount: _classes.length,
-                              itemBuilder: (context, index) {
-                                final classroom = _classes[index];
-                                return Card(
-                                  margin: const EdgeInsets.only(right: 16),
-                                  child: InkWell(
-                                    onTap: () {
-                                      Navigator.pushNamed(
-                                        context,
-                                        AppRoutes.classDetail,
-                                        arguments: classroom.id,
-                                      );
-                                    },
-                                    child: SizedBox(
-                                      width: 200,
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(16.0),
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Icon(
-                                              Icons.school,
-                                              size: 32,
-                                              color: Theme.of(context).colorScheme.primary,
-                                            ),
-                                            const SizedBox(height: 8),
-                                            Text(
-                                              classroom.name,
-                                              style: Theme.of(context).textTheme.titleMedium,
-                                              maxLines: 2,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              classroom.description ?? 'No description',
-                                              style: Theme.of(context).textTheme.bodySmall,
-                                              maxLines: 2,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
+                        ? _emptyCard("No classes available")
+                        : _horizontalClassList(),
 
                     const SizedBox(height: 32),
 
-                    // Recommendations Section
-                    Text(
-                      'Recommended for You',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 8),
-                    _recommendations.isEmpty
-                        ? const Card(
-                            child: Padding(
-                              padding: EdgeInsets.all(16.0),
-                              child: Text('No recommendations available'),
-                            ),
-                          )
-                        : ListView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: _recommendations.length,
-                            itemBuilder: (context, index) {
-                              final module = _recommendations[index];
-                              return Card(
-                                margin: const EdgeInsets.only(bottom: 8),
-                                child: ListTile(
-                                  leading: Icon(
-                                    module.type == 'pdf' ? Icons.picture_as_pdf :
-                                    module.type == 'video' ? Icons.video_file :
-                                    Icons.article,
-                                    color: Theme.of(context).colorScheme.primary,
-                                  ),
-                                  title: Text(module.title),
-                                  subtitle: Text(module.classroom?.name ?? 'Unknown class'),
-                                  trailing: const Icon(Icons.arrow_forward_ios),
-                                  onTap: () {
-                                    Navigator.pushNamed(
-                                      context,
-                                      AppRoutes.moduleDetail,
-                                      arguments: module.id,
-                                    );
-                                  },
-                                ),
-                              );
-                            },
-                          ),
+                    // Recommendations
+                    _sectionTitle("Recommended for You"),
+                    const SizedBox(height: 12),
 
-                    const SizedBox(height: 24),
+                    _recommendations.isEmpty
+                        ? _emptyCard("No recommendations available")
+                        : _recommendationList(),
+
+                    const SizedBox(height: 32),
 
                     // Quick Actions
-                    Text(
-                      'Quick Actions',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 8),
-                    GridView.count(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                      children: [
-                        _buildActionCard(
-                          context,
-                          'Modules',
-                          Icons.library_books,
-                          () => Navigator.pushNamed(context, AppRoutes.moduleList),
-                        ),
-                        _buildActionCard(
-                          context,
-                          'Tasks',
-                          Icons.assignment,
-                          () => Navigator.pushNamed(context, AppRoutes.taskList),
-                        ),
-                        _buildActionCard(
-                          context,
-                          'Quizzes',
-                          Icons.quiz,
-                          () => Navigator.pushNamed(context, AppRoutes.quizList),
-                        ),
-                        _buildActionCard(
-                          context,
-                          'Quiz History',
-                          Icons.history,
-                          () => Navigator.pushNamed(context, AppRoutes.quizHistory),
-                        ),
-                        _buildActionCard(
-                          context,
-                          'Recommendations',
-                          Icons.lightbulb,
-                          () => Navigator.pushNamed(context, AppRoutes.recommendation),
-                        ),
-                        _buildActionCard(
-                          context,
-                          'Profile',
-                          Icons.person,
-                          () => Navigator.pushNamed(context, AppRoutes.profile),
-                        ),
-                      ],
-                    ),
+                    _sectionTitle("Quick Actions"),
+                    const SizedBox(height: 12),
+
+                    _quickActionsGrid(),
                   ],
                 ),
               ),
@@ -273,31 +141,190 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildActionCard(BuildContext context, String title, IconData icon, VoidCallback onTap) {
-    return Card(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 32,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                title,
-                style: Theme.of(context).textTheme.titleMedium,
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
+  // Featured Banner
+  Widget _buildFeaturedBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.indigo.shade500, Colors.deepPurple.shade400],
         ),
+        borderRadius: BorderRadius.circular(20),
       ),
+      child: Row(
+        children: [
+          const Icon(Icons.lightbulb, color: Colors.white, size: 48),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              "Terus belajar! Jelajahi modul yang direkomendasikan untuk Anda.",
+              style: const TextStyle(
+                  color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+  // Reusable section title
+  Widget _sectionTitle(String title, {VoidCallback? onViewAll}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(title,
+            style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.indigo.shade900)),
+        if (onViewAll != null)
+          TextButton(
+            onPressed: onViewAll,
+            child: const Text("View All"),
+          )
+      ],
+    );
+  }
+
+  Widget _horizontalClassList() {
+    return SizedBox(
+      height: 200,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: _classes.length,
+        itemBuilder: (context, index) {
+          final c = _classes[index];
+          return Container(
+            width: 220,
+            margin: const EdgeInsets.only(right: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.black12.withOpacity(0.05),
+                    blurRadius: 10,
+                    spreadRadius: 2)
+              ],
+            ),
+            child: InkWell(
+              onTap: () => Navigator.pushNamed(
+                context,
+                AppRoutes.classDetail,
+                arguments: c.id,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.class_, size: 40, color: Colors.indigo.shade600),
+                    const SizedBox(height: 8),
+                    Text(c.name,
+                        maxLines: 2,
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 6),
+                    Text(
+                      c.description ?? "No description",
+                      maxLines: 2,
+                      style: TextStyle(color: Colors.grey.shade600),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _recommendationList() {
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: _recommendations.length,
+      itemBuilder: (context, index) {
+        final m = _recommendations[index];
+        final icon = m.type == "pdf"
+            ? Icons.picture_as_pdf
+            : m.type == "video"
+                ? Icons.video_library
+                : Icons.article;
+
+        return Card(
+          elevation: 2,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: ListTile(
+            leading: Icon(icon, size: 30, color: Colors.indigo),
+            title: Text(m.title,
+                style:
+                    const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+            subtitle: Text(m.classroom?.name ?? "Unknown Class"),
+            trailing: const Icon(Icons.arrow_forward_ios),
+            onTap: () {
+              Navigator.pushNamed(
+                context,
+                AppRoutes.moduleDetail,
+                arguments: m.id,
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _emptyCard(String text) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Text(text),
+      ),
+    );
+  }
+
+  Widget _quickActionsGrid() {
+    List<Map<String, dynamic>> actions = [
+      {"title": "Modules", "icon": Icons.library_books, "route": AppRoutes.moduleList},
+      {"title": "Tasks", "icon": Icons.assignment, "route": AppRoutes.taskList},
+      {"title": "Quizzes", "icon": Icons.quiz, "route": AppRoutes.quizList},
+      {"title": "History", "icon": Icons.history, "route": AppRoutes.quizHistory},
+      {"title": "AI Tips", "icon": Icons.lightbulb, "route": AppRoutes.recommendation},
+      {"title": "Profile", "icon": Icons.person, "route": AppRoutes.profile},
+    ];
+
+    return GridView.count(
+      shrinkWrap: true,
+      crossAxisCount: 2,
+      crossAxisSpacing: 16,
+      mainAxisSpacing: 16,
+      physics: const NeverScrollableScrollPhysics(),
+      children: actions.map((a) {
+        return Card(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () => Navigator.pushNamed(context, a["route"]),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(a["icon"], size: 38, color: Colors.indigo),
+                  const SizedBox(height: 12),
+                  Text(a["title"],
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 }
