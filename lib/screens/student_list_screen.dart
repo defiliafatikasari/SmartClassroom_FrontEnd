@@ -87,7 +87,7 @@ class _StudentListScreenState extends State<StudentListScreen> {
                     itemCount: _students.length,
                     itemBuilder: (context, index) {
                       final student = _students[index];
-                      final progressPercentage = student['progress_percentage'] as double;
+                      final progressPercentage = (student['progress_percentage'] as num).toDouble();
 
                       return Card(
                         margin: const EdgeInsets.only(bottom: 12),

@@ -79,7 +79,7 @@ class _QuizHistoryScreenState extends State<QuizHistoryScreen> {
                     itemBuilder: (context, index) {
                       final result = _quizResults[index];
                       final quiz = result['quiz'] as Map<String, dynamic>? ?? {};
-                      final percentage = result['percentage'] as double;
+                      final percentage = (result['percentage'] as num).toDouble();
                       final passed = result['passed'] as bool;
                       final createdAt = DateTime.parse(result['created_at']);
 
