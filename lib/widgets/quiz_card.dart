@@ -47,7 +47,7 @@ class QuizCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${quiz.questionsJson.length} questions',
+                        '${quiz.questions.length} questions',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],

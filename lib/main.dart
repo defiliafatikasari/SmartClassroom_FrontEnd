@@ -7,6 +7,7 @@ import 'services/module_service.dart';
 import 'services/task_service.dart';
 import 'services/quiz_service.dart';
 import 'services/recommendation_service.dart';
+import 'viewmodels/quiz_viewmodel.dart';
 
 void main() {
   runApp(const MyApp());
@@ -25,6 +26,9 @@ class MyApp extends StatelessWidget {
         Provider<TaskService>(create: (_) => TaskService()),
         Provider<QuizService>(create: (_) => QuizService()),
         Provider<RecommendationService>(create: (_) => RecommendationService()),
+        ChangeNotifierProvider<QuizViewModel>(
+          create: (_) => QuizViewModel(),
+        ),
       ],
       child: MaterialApp(
         title: 'Smart Classroom',

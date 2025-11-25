@@ -8,6 +8,8 @@ import 'screens/module_list_screen.dart';
 import 'screens/module_detail_screen.dart';
 import 'screens/task_list_screen.dart';
 import 'screens/quiz_list_screen.dart';
+// ignore: unused_import
+import 'screens/quiz_detail_screen.dart';
 import 'screens/recommendation_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/admin_panel_screen.dart';

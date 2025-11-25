@@ -16,7 +16,7 @@ class QuizService {
     }
   }
 
-  Future<Map<String, dynamic>> submitQuiz(int id, Map<String, String> answers) async {
+  Future<Map<String, dynamic>> submitQuiz(int id, Map<int, int> answers) async {
     final response = await Api.post('/quizzes/$id/submit', body: {
       'answers': answers,
     });
