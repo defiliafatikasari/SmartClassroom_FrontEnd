@@ -103,6 +103,27 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
                           ),
                         ),
                       ),
+
+                      // View Students button (for teachers)
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: () {
+                            Navigator.pushNamed(
+                              context,
+                              AppRoutes.studentList,
+                              arguments: _classId,
+                            );
+                          },
+                          icon: const Icon(Icons.people),
+                          label: const Text('View Students'),
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                        ),
+                      ),
+
                       const SizedBox(height: 24),
                       Text(
                         'Modules',

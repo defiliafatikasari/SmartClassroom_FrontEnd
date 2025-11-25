@@ -248,9 +248,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                         _buildActionCard(
                           context,
+                          'Quiz History',
+                          Icons.history,
+                          () => Navigator.pushNamed(context, AppRoutes.quizHistory),
+                        ),
+                        _buildActionCard(
+                          context,
                           'Recommendations',
                           Icons.lightbulb,
                           () => Navigator.pushNamed(context, AppRoutes.recommendation),
+                        ),
+                        _buildActionCard(
+                          context,
+                          'Profile',
+                          Icons.person,
+                          () => Navigator.pushNamed(context, AppRoutes.profile),
                         ),
                       ],
                     ),

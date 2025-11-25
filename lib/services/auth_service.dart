@@ -60,6 +60,21 @@ class AuthService {
     return null;
   }
 
+  Future<User> updateProfile(String name, String email) async {
+    final response = await Api.put('/profile', body: {
+      'name': name,
+      'email': email,
+    });
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return User.fromJson(data['user']);
+    } else {
+      final error = jsonDecode(response.body);
+      throw Exception(error['message'] ?? 'Failed to update profile');
+    }
+  }
+
   Future<bool> isLoggedIn() async {
     final token = await Api.getToken();
     return token != null;

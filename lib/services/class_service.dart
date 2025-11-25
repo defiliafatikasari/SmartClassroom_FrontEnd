@@ -34,4 +34,15 @@ class ClassService {
       throw Exception(error['message'] ?? 'Failed to load class detail');
     }
   }
+
+  Future<Map<String, dynamic>> getClassStudents(int id) async {
+    final response = await Api.get('/classes/$id/students');
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      final error = jsonDecode(response.body);
+      throw Exception(error['message'] ?? 'Failed to load class students');
+    }
+  }
 }

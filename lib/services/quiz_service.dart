@@ -39,4 +39,17 @@ class QuizService {
       throw Exception(error['message'] ?? 'Failed to get quiz result');
     }
   }
+
+  Future<List<Map<String, dynamic>>> getQuizHistory({int? quizId}) async {
+    final queryParams = quizId != null ? '?quiz_id=$quizId' : '';
+    final response = await Api.get('/quiz-history$queryParams');
+
+    if (response.statusCode == 200) {
+      final List data = jsonDecode(response.body);
+      return data.map((e) => e as Map<String, dynamic>).toList();
+    } else {
+      final error = jsonDecode(response.body);
+      throw Exception(error['message'] ?? 'Failed to load quiz history');
+    }
+  }
 }
